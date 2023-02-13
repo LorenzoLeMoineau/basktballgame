@@ -4,22 +4,27 @@ import math
 
 marge=20 #marge du terrain sur l'écran
 c_g=9.81 #constante gravitationnel
-c_xs=640 #taile en pixel de la longueur
-c_ys=480 #taille en pixel de la hauteur
-c_hr=8 #hauteur du plafond en metre
-c_hterrainp=c_ys-(marge*2) #hauteur du terrain
-c_lterrain=(c_hr*(c_xs-marge*2))/c_hterrainp #environ 11.63 m longueur terrain
+c_xs=640 #constante de la taile en pixel de la longueur
+c_ys=480 #constante de la taille en pixel de la hauteur
+c_hr=8 #constante de la hauteur en mètre du plafond
+c_hterrainp=c_ys-(marge*2) #constante de la hauteur en pixel du terrain
+c_lterrain=(c_hr*(c_xs-marge*2))/c_hterrainp #constante de la longueur du terrain en pixel qui correspond environ à 11.63 m
 coeffpix2m=c_hr/c_hterrainp #coefficient de conversion de pixel à mètre
 coeffm2pix=c_hterrainp/c_hr #coefficient de conversion de mètre à pixel
-c_amortissement=0.5 #coefficient d'amortissement
-c_seuilv=0.9 #seuil de vitesse auquel la balle s'arrête
-c_rayonball=0.15 #rayon de la balle
+c_amortissement=0.5 #constante de coefficient d'amortissement
+c_seuilv=0.9 #constante du seuil de vitesse auquel la balle s'arrête
+c_rayonball=0.15 #constante du rayon en mètre de la balle
+firstpointxpanierp=c_lterrain-0.45 #coordonné x du point à gauche du panier basket
+firstpoinytpanierp=3.05 #coordonné réel y du point à gauche du panier basket
+epaisseurpanierp=0.02 #epaisseur du panier de basket en metre
+firstpointypanierp=3.05 #coordonné réel y du point à gauche du panier basket
 
+#affiche la fenêtre du jeu
 pygame.init()
-pygame.display.set_caption("game")
-screen = pygame.display.set_mode((c_xs,c_ys))
+pygame.display.set_caption("game") #nom de la fenêtre du jeu
+screen = pygame.display.set_mode((c_xs,c_ys)) #taille de la fenêtre du jeu
 
-#convertie les coordonnées dans le repère physique classique dans le repère inversé de Pygame
+#convertie les coordonnées dans le repère physique classique en mètre dans le repère inversé de Pygame en pixel
 def chgtrepere(xp,yp):
     xs=xp+marge
     ys=(c_ys-yp)-marge
@@ -42,6 +47,22 @@ def drawaxe():
     pygame.draw.line(screen, white, (marge, c_ys), (marge, 0), 1)
     pygame.draw.line(screen, white, (c_xs - marge,c_ys), (c_xs-marge,0), 1)
     pygame.draw.line(screen, white, (0,marge),(c_xs,marge), 1)
+ #   pygame.display.flip()
+
+#dessine le panier de basket
+def drawpanier():
+     global epaisseurpanierp
+     global firstpointxpanierp
+     global firstpointypanierp
+     rouge = (255, 0, 0)
+     vert=(0,255,0)
+     epaisseurpaniers=epaisseurpanierp*coeffm2pix
+     firstpointxpaniers = firstpointxpanierp * coeffm2pix
+     firstpointypaniers = firstpoinytpanierp * coeffm2pix
+     xs, ys = chgtrepere(firstpointxpaniers, firstpointypaniers)
+     #dessine le panier
+     pygame.draw.circle(screen, rouge, (xs, ys), epaisseurpaniers)
+     pygame.draw.line(screen, rouge, (xs, ys), (c_xs-marge, ys), 1)
 
 #calcule la vitesse d'un vecteur en fonction de son angle, de sa composante en x et y et du temps t
 def vitesse(angle,vi,t):
@@ -49,6 +70,10 @@ def vitesse(angle,vi,t):
     vx=vi*math.cos(angle)
     vy=-c_g*t+vi*math.sin(angle)
     return vx,vy
+
+#Transformer un vecteur AB en vecteur BA
+def vecteuroppose(x,y):
+    return -x,-y
 
 #calcule la norme d'un vecteur
 def norme(x,y):
@@ -59,7 +84,7 @@ def norme(x,y):
 def scalaire(x1,y1,x2,y2):
     return x1*x2+y1*y2
 
-#calcule l'angle entre deux vecteurs
+#calcule l'angle en radian entre deux vecteurs
 def angle(x1,y1,x2,y2):
     dot = x1 * x2 + y1 * y2  # dot product between [x1, y1] and [x2, y2]
     det = x1 * y2 - y1 * x2  # determinant
@@ -99,6 +124,20 @@ def collision(x,y):
         nx=0
         ny=-1
         y=c_hr-c_rayonball
+    bornex1=firstpointxpanierp - c_rayonball
+    bornex2=firstpointxpanierp+c_rayonball
+    borney1=firstpointypanierp - c_rayonball
+    borney2=firstpointypanierp+c_rayonball
+    vectxpb=firstpointxpanierp - x
+    vectypb=firstpointypanierp - y
+    if (bornex1<=x and bornex2>=x and borney1<=y and borney2>=y): #panier
+        if (norme(vectxpb, vectypb)<=c_rayonball):
+            vx,vy=vecteuroppose(vectxpb,vectypb)
+            angle1=angle(1,0,vx,vy)
+            nx=math.cos(angle1)
+            ny=math.sin(angle1)
+            x=firstpointxpanierp+0.16*math.cos(angle1)
+            y=firstpointypanierp++0.16*math.sin(angle1)
     return nx,ny,x,y
 
 #calcule la trajectoire d'un projectile
@@ -106,6 +145,7 @@ def projectile(xi,yi,angle,vi,t):
     x=vi*math.cos(angle)*t+xi
     y=-c_g*(t**2/2)+vi*math.sin(angle)*t+yi
     return x,y
+
 
 #effectue un shoot tant que la balle ne se cogne pas contre une surface
 def shoot(v0,angle,x0,y0):
@@ -116,23 +156,27 @@ def shoot(v0,angle,x0,y0):
         t = t + 0.01
         xp,yp=projectile(x0,y0,angle,v0,t)
         vx,vy=vitesse(angle, v0, t)
+        win(vy,x0,y0)
         screen.fill((0, 0, 0))
         drawaxe()
+        drawpanier()
         ball(xp, yp)
         nx,ny,xp,yp=collision(xp,yp) #determine s'il y a une collision
         choc=norme(nx,ny)
 
+
     return vx,vy,xp,yp,nx,ny
 
+firstpointxpaniers = firstpointxpanierp * coeffm2pix
+firstpoinytpaniers = firstpoinytpanierp * coeffm2pix
 t=0
 drawaxe()
-v0=100 #parametre qu'on peut varier
-x0=3   #parametre qu'on peut varier
-y0=3   #parametre qu'on peut varier
-#nx=0
-#ny=0
-ang=0.75 #parametre qu'on peut varier
-while (v0>c_seuilv): 
+drawpanier()
+v0=2 #vitesse initiale qu'on peut varier
+x0=11.5  #position x initiale en mètre qu'on peut varier
+y0=6   #position y initiale en mètre qu'on peut varier
+ang=-1.57 #angle initiale en radian qu'on peut varier
+while (v0>c_seuilv):
     vx,vy,xp,yp,nx,ny=shoot(v0,ang,x0,y0)
     t = 0
     vc = norme(vx, vy)
@@ -142,7 +186,10 @@ while (v0>c_seuilv):
     y0 = yp
     ang=anglereflex
 
-#affiche la fenêtre de jeu
+
+
+
+#affiche la fenêtre de jeu tant que le joueur ne décide pas de s'arrêter
 run = True
 while run == True:
     for event in pygame.event.get():
