@@ -4,8 +4,8 @@ import math
 
 marge=20 #marge du terrain sur l'écran
 c_g=9.81 #constante gravitationnel
-c_xs=640 #constante de la taile en pixel de la longueur
-c_ys=480 #constante de la taille en pixel de la hauteur
+c_xs=640 #640 #constante de la taile en pixel de la longueur
+c_ys=480 #480 #constante de la taille en pixel de la hauteur
 c_hr=8 #constante de la hauteur en mètre du plafond
 c_hterrainp=c_ys-(marge*2) #constante de la hauteur en pixel du terrain
 c_lterrain=(c_hr*(c_xs-marge*2))/c_hterrainp #constante de la longueur du terrain en pixel qui correspond environ à 11.63 m
@@ -18,6 +18,7 @@ firstpointxpanierp=c_lterrain-0.45 #coordonné x du point à gauche du panier ba
 firstpoinytpanierp=3.05 #coordonné réel y du point à gauche du panier basket
 epaisseurpanierp=0.02 #epaisseur du panier de basket en metre
 firstpointypanierp=3.05 #coordonné réel y du point à gauche du panier basket
+
 
 #affiche la fenêtre du jeu
 pygame.init()
@@ -105,7 +106,8 @@ def anglereflexion(nx,ny,vx,vy):
     return angler+anglecorrection
 
 #calcule la norme de la surface après une collision
-def collision(x,y):
+def collision(x,y,vy):
+    global flag
     nx=0
     ny=0
     if(y<=c_rayonball): #sol
@@ -130,7 +132,7 @@ def collision(x,y):
     borney2=firstpointypanierp+c_rayonball
     vectxpb=firstpointxpanierp - x
     vectypb=firstpointypanierp - y
-    if (bornex1<=x and bornex2>=x and borney1<=y and borney2>=y): #panier
+    if (bornex1<=x and bornex2>=x and borney1<=y and borney2>=y): #collision du panier
         if (norme(vectxpb, vectypb)<=c_rayonball):
             vx,vy=vecteuroppose(vectxpb,vectypb)
             angle1=angle(1,0,vx,vy)
@@ -138,7 +140,12 @@ def collision(x,y):
             ny=math.sin(angle1)
             x=firstpointxpanierp+0.16*math.cos(angle1)
             y=firstpointypanierp++0.16*math.sin(angle1)
-    return nx,ny,x,y
+    if (firstpointxpanierp+0.10<x<c_xs-marge-0.10 and firstpointypanierp-0.1<y<firstpointypanierp+0.1 and flag==0):
+        if (vy<=0):
+            flag=1
+        elif(vy>0):
+            flag=-1
+    return nx,ny,x,y,flag
 
 #calcule la trajectoire d'un projectile
 def projectile(xi,yi,angle,vi,t):
@@ -156,26 +163,25 @@ def shoot(v0,angle,x0,y0):
         t = t + 0.01
         xp,yp=projectile(x0,y0,angle,v0,t)
         vx,vy=vitesse(angle, v0, t)
-        win(vy,x0,y0)
         screen.fill((0, 0, 0))
         drawaxe()
         drawpanier()
         ball(xp, yp)
-        nx,ny,xp,yp=collision(xp,yp) #determine s'il y a une collision
+        nx,ny,xp,yp,flag=collision(xp,yp,vy) #determine s'il y a une collision
         choc=norme(nx,ny)
-
-
     return vx,vy,xp,yp,nx,ny
 
 firstpointxpaniers = firstpointxpanierp * coeffm2pix
 firstpoinytpaniers = firstpoinytpanierp * coeffm2pix
+score=0
 t=0
 drawaxe()
 drawpanier()
-v0=2 #vitesse initiale qu'on peut varier
-x0=11.5  #position x initiale en mètre qu'on peut varier
-y0=6   #position y initiale en mètre qu'on peut varier
-ang=-1.57 #angle initiale en radian qu'on peut varier
+flag=0
+v0=20 #vitesse initiale qu'on peut varier
+x0=10.5  #position x initiale en mètre qu'on peut varier
+y0=5  #position y initiale en mètre qu'on peut varier
+ang=-1.51 #angle initiale en radian qu'on peut varier
 while (v0>c_seuilv):
     vx,vy,xp,yp,nx,ny=shoot(v0,ang,x0,y0)
     t = 0
@@ -185,6 +191,12 @@ while (v0>c_seuilv):
     x0 = xp
     y0 = yp
     ang=anglereflex
+if (flag==1):
+    score=score+1
+    print("Win ! Your score is : ",score)
+
+
+#print("la balle s'arrete")
 
 
 
